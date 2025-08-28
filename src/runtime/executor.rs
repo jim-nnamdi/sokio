@@ -19,13 +19,17 @@ pub fn _nonblock(fd: RawFd) -> io::Result<()> {
     }
 }
 
+#[cfg(any(
+    target_os = "macos",
+    target_os = "freebsd",
+    target_os = "netbsd" ))]
 pub fn _executor(kq: RawFd) {
     let mut evs: [libc::kevent; _MAX_E] = unsafe { std::mem::zeroed() };
     let nev = unsafe {
         libc::kevent(
             kq,
             std::ptr::null(),0,
-            evs.as_mut_ptr(),0,
+            evs.as_mut_ptr(),evs.len() as i32,
             std::ptr::null(),
         )
     };
@@ -76,16 +80,22 @@ pub fn _accept_task(task: &mut _Task, mut tasks: Box<Vec<_Task>>) {
             fd: clientfd, poll:_client_task, buf:[0u8; 1024], len:1024
         };
 
-        let mut ev:libc::kevent = std::mem::zeroed();
-        ev.ident = clientfd as libc::uintptr_t;
-        ev.filter = libc::EVFILT_READ;
-        ev.flags = libc::EV_ADD | libc::EV_ENABLE;
-        ev.fflags = 0; ev.data = 0;
-        ev.udata = &mut client as *mut _ as *mut libc::c_void;
-
-        if libc::kevent(task.fd, &ev, 1, std::ptr::null_mut(), 0, std::ptr::null_mut()) < 0 {
-            std::process::exit(1);
+        #[cfg(any(
+            target_os = "macos",
+            target_os = "netbsd",
+            target_os ="freebsd"
+        ))] {
+            let mut ev:libc::kevent = std::mem::zeroed();
+            ev.ident = clientfd as libc::uintptr_t;
+            ev.filter = libc::EVFILT_READ;
+            ev.flags = libc::EV_ADD | libc::EV_ENABLE;
+            ev.fflags = 0; ev.data = 0;
+            ev.udata = &mut client as *mut _ as *mut libc::c_void;
+    
+            if libc::kevent(task.fd, &ev, 1, std::ptr::null_mut(), 0, std::ptr::null_mut()) < 0 {
+                std::process::exit(1);
+            }
+            tasks.push(client);
         }
-        tasks.push(client);
     }
 }
