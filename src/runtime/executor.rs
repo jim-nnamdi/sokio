@@ -83,6 +83,9 @@ pub fn _accept_task(task: &mut _Task, mut tasks: Box<Vec<_Task>>) {
         ev.fflags = 0; ev.data = 0;
         ev.udata = &mut client as *mut _ as *mut libc::c_void;
 
+        if libc::kevent(task.fd, &ev, 1, std::ptr::null_mut(), 0, std::ptr::null_mut()) < 0 {
+            std::process::exit(1);
+        }
         tasks.push(client);
     }
 }
