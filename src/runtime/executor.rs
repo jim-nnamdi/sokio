@@ -70,6 +70,19 @@ pub fn _client_task(task: &mut _Task) {
     };
 }
 
+#[cfg(any(target_os="linux"))]
+pub fn _accept_task(task:&mut _Task, mut tasks: Box<Vec<_Task>>) {
+    unsafe {
+        let mut addr: libc::sockaddr = std::mem::zeroed();
+        let mut addrlen = std::mem::size_of::<libc::sockaddr>() as libc::socklen_t;
+        let cfd = libc::accept(task.fd, &mut addr as *mut _ as *mut libc::sockaddr, addrlen);
+        if cfd < 0 { std::process::exit(1);}
+        let mut client = _Task {fd: cfd, poll:_client_task, buf:[0u8;1024], len:1024};
+        tasks.push(client);
+    }
+}
+
+#[cfg(any(target_os = "macos",target_os = "netbsd",target_os ="freebsd"))] 
 pub fn _accept_task(task: &mut _Task, mut tasks: Box<Vec<_Task>>) {
     unsafe {
         let mut client: libc::sockaddr_in = std::mem::zeroed();
@@ -80,11 +93,7 @@ pub fn _accept_task(task: &mut _Task, mut tasks: Box<Vec<_Task>>) {
             fd: clientfd, poll:_client_task, buf:[0u8; 1024], len:1024
         };
 
-        #[cfg(any(
-            target_os = "macos",
-            target_os = "netbsd",
-            target_os ="freebsd"
-        ))] {
+        
             let mut ev:libc::kevent = std::mem::zeroed();
             ev.ident = clientfd as libc::uintptr_t;
             ev.filter = libc::EVFILT_READ;
@@ -96,6 +105,5 @@ pub fn _accept_task(task: &mut _Task, mut tasks: Box<Vec<_Task>>) {
                 std::process::exit(1);
             }
             tasks.push(client);
-        }
     }
 }
