@@ -4,12 +4,14 @@ pub fn _net(port: u16) -> io::Result<()> {
     unsafe {
         let mut addr: libc::sockaddr_in = std::mem::zeroed();
         let mut addl = std::mem::size_of::<libc::sockaddr>() as libc::socklen_t;
-        #[cfg(any(target_os = "macos", target_os = "netbsd", target_os = "freebsd"))]{
+        #[cfg(any(target_os = "macos", target_os = "netbsd", target_os = "freebsd"))]
+        {
             addr.sin_len = std::mem::size_of::<libc::sockaddr>() as u8;
             addr.sin_family = libc::AF_INET as u8;
         }
 
-        #[cfg(any(target_os = "linux"))]{
+        #[cfg(any(target_os = "linux"))]
+        {
             addr.sin_len = std::mem::size_of::<libc::sockaddr>() as u16;
             addr.sin_family = libc::AF_INET as u16;
         }
@@ -42,7 +44,8 @@ pub fn _net(port: u16) -> io::Result<()> {
             let n = libc::send(
                 cfd as libc::c_int,
                 &mut buf as *mut _ as *mut libc::c_void,
-                buf.len(), 0,
+                buf.len(),
+                0,
             );
 
             if n <= 0 {
