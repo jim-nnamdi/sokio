@@ -39,4 +39,23 @@ pub fn _broadcast(port: u16) -> io::Result<()> {
     }
 }
 
-pub fn _listen_for_peers() {}
+pub fn _listen_for_peers(port:u16) {
+    unsafe {
+        let mut a: libc::sockaddr_in = mem::zeroed();
+        let sfd = libc::socket(libc::AF_INET, libc::SOCK_DGRAM, 0);
+        if  sfd < 0 { return;}
+
+        a.sin_family = libc::AF_INET as u8;
+        a.sin_addr.s_addr = libc::INADDR_ANY;
+        a.sin_port = port.to_be();
+        a.sin_len = mem::size_of::<libc::sockaddr_in>() as u8;
+        a.sin_zero = [0;8];
+
+        let sbd = libc::bind(sfd, &mut a as *const _ as *const libc::sockaddr, mem::size_of::<libc::sockaddr_in>() as u32);
+        if sbd < 0 { return;}
+        
+        loop {
+
+        }
+    }
+}
